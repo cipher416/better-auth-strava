@@ -1,5 +1,5 @@
-import { strava } from "@better-auth/strava";
 import { betterAuth } from "better-auth";
+import { strava } from "better-auth-strava";
 import { Pool } from "pg";
 
 const pool = new Pool({
@@ -8,7 +8,7 @@ const pool = new Pool({
 
 export const auth = betterAuth({
   database: pool,
-  trustedOrigins: ["http://localhost:3000"],
+  trustedOrigins: [process.env.BETTER_AUTH_URL || ""],
   plugins: [
     strava({
       clientId: process.env.STRAVA_CLIENT_ID || "",
