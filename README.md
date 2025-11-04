@@ -1,5 +1,7 @@
 # Better Auth + Strava
 
+See demo at : https://better-auth-strava-demo.cristoper.dev/
+
 Strava OAuth provider for [Better Auth](https://www.better-auth.com) with automatic token refresh and seamless session management.
 
 ## Features
