@@ -1,5 +1,5 @@
 {
-  "name": "@better-auth/strava",
+  "name": "better-auth-strava",
   "version": "0.1.0",
   "description": "Strava OAuth provider for better-auth",
   "type": "module",
