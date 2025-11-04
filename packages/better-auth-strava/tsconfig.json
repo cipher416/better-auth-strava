@@ -1,0 +1,16 @@
+{
+  "$schema": "https://json.schemastore.org/tsconfig",
+  "extends": "@repo/typescript-config/base.json",
+  "compilerOptions": {
+    "outDir": "dist",
+    "rootDir": "src",
+    "moduleResolution": "NodeNext",
+    "baseUrl": ".",
+    "paths": {
+      "better-auth/plugins": ["./src/better-auth-plugins"]
+    },
+    "stripInternal": true
+  },
+  "include": ["src"],
+  "exclude": ["dist", "node_modules"]
+}
