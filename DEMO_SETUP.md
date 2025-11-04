@@ -33,12 +33,14 @@ docker-compose up -d
 ```
 
 This will start a PostgreSQL 16 instance with:
+
 - **Host:** `localhost:5432`
 - **Database:** `better_auth_strava`
 - **User:** `postgres`
 - **Password:** `postgres`
 
 **Verify it's running:**
+
 ```bash
 docker ps | grep better-auth-postgres
 ```
@@ -58,6 +60,7 @@ Edit `.env` and add your credentials:
 # Better Auth Configuration
 BETTER_AUTH_SECRET=your-secret-key-here-min-32-chars
 BETTER_AUTH_URL=http://localhost:3000
+NEXT_PUBLIC_BETTER_AUTH_URL=http://localhost:3000
 
 # Strava OAuth Credentials
 STRAVA_CLIENT_ID=your-strava-client-id
@@ -68,6 +71,7 @@ DATABASE_URL=postgresql://postgres:postgres@localhost:5432/better_auth_strava
 ```
 
 **Generate a secure secret:**
+
 ```bash
 openssl rand -base64 32
 ```
@@ -81,6 +85,7 @@ bun run db:migrate
 ```
 
 This creates the following tables in PostgreSQL:
+
 - `user` - User accounts and profile data
 - `session` - Active user sessions
 - `account` - OAuth provider connections
@@ -99,12 +104,14 @@ The demo app will be available at **http://localhost:3000**
 The demo application showcases:
 
 ### Authentication
+
 - ✅ Sign in with Strava OAuth
 - ✅ Automatic token refresh
 - ✅ Secure session management
 - ✅ Sign out functionality
 
 ### User Interface
+
 - ✅ Modern, responsive design
 - ✅ Dark mode support
 - ✅ Shadcn UI components
@@ -112,6 +119,7 @@ The demo application showcases:
 - ✅ Athlete data from Strava
 
 ### Technical Features
+
 - ✅ Next.js 15 App Router
 - ✅ PostgreSQL database
 - ✅ Type-safe API routes
@@ -239,6 +247,7 @@ bun run db:migrate
 ### Hot Reload
 
 The demo uses Turbo for fast hot reload. Changes to:
+
 - React components → Instant refresh
 - API routes → Requires page refresh
 - Environment variables → Requires server restart
@@ -271,6 +280,7 @@ socialProviders: {
 ```
 
 After changing scopes:
+
 1. Sign out from the demo
 2. Restart the server
 3. Sign in again to reauthorize with new scopes
@@ -278,6 +288,7 @@ After changing scopes:
 ## Stopping the Demo
 
 ### Stop Development Server
+
 Press `Ctrl+C` in the terminal running `bun dev`
 
 ### Stop PostgreSQL

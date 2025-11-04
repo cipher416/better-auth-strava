@@ -11,7 +11,11 @@
         "STRAVA_CLIENT_ID",
         "STRAVA_CLIENT_SECRET",
         "BETTER_AUTH_URL",
-        "BETTER_AUTH_SECRET"
+        "BETTER_AUTH_SECRET",
+        "NEXT_PUBLIC_BETTER_AUTH_URL",
+        "VERCEL_URL",
+        "VERCEL_BRANCH_URL",
+        "NEXT_PUBLIC_VERCEL_URL"
       ]
     },
     "lint": {
@@ -20,7 +24,11 @@
         "DATABASE_URL",
         "STRAVA_CLIENT_ID",
         "STRAVA_CLIENT_SECRET",
-        "BETTER_AUTH_URL"
+        "BETTER_AUTH_URL",
+        "NEXT_PUBLIC_BETTER_AUTH_URL",
+        "VERCEL_URL",
+        "VERCEL_BRANCH_URL",
+        "NEXT_PUBLIC_VERCEL_URL"
       ]
     },
     "check-types": {
