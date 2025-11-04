@@ -1,148 +1,317 @@
 # Better Auth + Strava
 
+Strava OAuth provider for [Better Auth](https://www.better-auth.com) with automatic token refresh and seamless session management.
+
 ## Features
 
-- OAuth 2.0 authentication with Strava
-- Automatic token refresh (offline access)
-- Secure session management with better-auth
-- User profile and athlete data from Strava API
-- Clean, modern UI with dark mode support
+- 🔐 OAuth 2.0 authentication with Strava
+- 🔄 Automatic token refresh (offline access)
+- 📧 Smart email handling (placeholder generation for Strava's no-email limitation)
+- 🎯 Type-safe session management
+- ⚡ Zero-config setup with Better Auth
 
-## Setup
-
-### 1. Install Dependencies
+## Installation
 
 ```bash
-bun install
+npm install better-auth better-auth-strava
+# or
+bun add better-auth better-auth-strava
 ```
 
-### 2. Configure Strava OAuth Application
+## Quick Start
+
+### 1. Get Strava API Credentials
 
 1. Go to [Strava API Settings](https://www.strava.com/settings/api)
-2. Create a new application (or use an existing one)
-3. Set the **Authorization Callback Domain** to `localhost`
+2. Create a new application
+3. Set your **Authorization Callback Domain** (e.g., `localhost` for development)
 4. Copy your **Client ID** and **Client Secret**
 
-### 3. Set Environment Variables
-
-Copy the example environment file and fill in your Strava credentials:
-
-```bash
-cp .env.example .env
-```
-
-Edit `.env` and add your Strava credentials:
-
-```env
-BETTER_AUTH_SECRET=your-secret-key-here-min-32-chars
-BETTER_AUTH_URL=http://localhost:3000
-
-STRAVA_CLIENT_ID=your-strava-client-id
-STRAVA_CLIENT_SECRET=your-strava-client-secret
-```
-
-Generate a secure random secret for `BETTER_AUTH_SECRET`:
-
-```bash
-openssl rand -base64 32
-```
-
-### 4. Initialize the Database
-
-Run the migration script to create the necessary database tables:
-
-```bash
-bun run db:migrate
-```
-
-This will create a SQLite database at `data/auth.db` with the following tables:
-
-- `user` - User accounts
-- `session` - Active sessions
-- `account` - OAuth provider accounts
-- `verification` - Email verification tokens
-
-### 5. Run the Development Server
-
-```bash
-bun dev
-```
-
-Open [http://localhost:3000](http://localhost:3000) in your browser.
-
-## How It Works
-
-### Authentication Flow
-
-1. User clicks "Connect with Strava"
-2. User is redirected to Strava OAuth authorization page
-3. After approval, Strava redirects back to `/api/auth/callback/strava`
-4. Better-auth exchanges the authorization code for access tokens
-5. User session is created and stored in the SQLite database
-6. User profile is displayed on the page
-
-### API Routes
-
-- `GET /api/auth/[...all]` - Handles all better-auth endpoints including:
-  - `/api/auth/signin/strava` - Initiates OAuth flow
-  - `/api/auth/callback/strava` - Handles OAuth callback
-  - `/api/auth/session` - Returns current session
-  - `/api/auth/signout` - Signs out the user
-
-### Project Structure
-
-```
-apps/web/
-├── app/
-│   ├── api/auth/[...all]/
-│   │   └── route.ts          # Better-auth API handler
-│   ├── page.tsx               # Demo UI
-│   ├── layout.tsx             # Root layout
-│   └── globals.css            # Global styles
-├── lib/
-│   ├── auth.ts                # Better-auth server config
-│   └── auth-client.ts         # Better-auth client utilities
-├── data/
-│   └── auth.db                # SQLite database (auto-created)
-└── .env                       # Environment variables
-```
-
-## Strava Scopes
-
-The demo requests the following Strava scopes:
-
-- `read` - Read public profile data
-- `profile:read_all` - Read all profile information (includes email if available)
-- `activity:read_all` - Read all activity data
-
-You can modify the scopes in `apps/web/lib/auth.ts`.
-
-## Email Handling
-
-Strava does not provide email addresses through their API. The `@better-auth/strava` provider handles this automatically by:
-
-- Generating deterministic placeholder emails: `athlete-{id}@strava.local`
-- Setting `hasPlaceholderEmail: true` in user metadata
-- Working out of the box with no configuration needed
-
-**Example:** User with athlete ID `34217575` gets email `athlete-34217575@strava.local`
-
-You can check if an email is a placeholder:
+### 2. Configure Better Auth
 
 ```typescript
-if (session.user.email.endsWith("@strava.local")) {
-  // This is a placeholder email
+// lib/auth.ts
+import { betterAuth } from "better-auth";
+import { strava } from "better-auth-strava";
+
+export const auth = betterAuth({
+  database: {
+    provider: "postgres",
+    url: process.env.DATABASE_URL!,
+  },
+  socialProviders: {
+    strava: {
+      clientId: process.env.STRAVA_CLIENT_ID!,
+      clientSecret: process.env.STRAVA_CLIENT_SECRET!,
+    },
+  },
+});
+```
+
+### 3. Create Auth Client
+
+```typescript
+// lib/auth-client.ts
+import { createAuthClient } from "better-auth/react";
+
+export const authClient = createAuthClient({
+  baseURL: process.env.NEXT_PUBLIC_AUTH_URL,
+});
+```
+
+### 4. Add API Route Handler
+
+**Next.js App Router:**
+
+```typescript
+// app/api/auth/[...all]/route.ts
+import { auth } from "@/lib/auth";
+import { toNextJsHandler } from "better-auth/next-js";
+
+export const { GET, POST } = toNextJsHandler(auth);
+```
+
+**Next.js Pages Router:**
+
+```typescript
+// pages/api/auth/[...all].ts
+import { auth } from "@/lib/auth";
+import { toNextJsHandler } from "better-auth/next-js";
+
+export default toNextJsHandler(auth);
+```
+
+### 5. Use in Your App
+
+```tsx
+"use client";
+
+import { authClient } from "@/lib/auth-client";
+
+export default function LoginButton() {
+  const { data: session, isPending } = authClient.useSession();
+
+  const handleSignIn = async () => {
+    await authClient.signIn.social({
+      provider: "strava",
+      callbackURL: "/dashboard",
+    });
+  };
+
+  const handleSignOut = async () => {
+    await authClient.signOut();
+  };
+
+  if (isPending) {
+    return <div>Loading...</div>;
+  }
+
+  if (session) {
+    return (
+      <div>
+        <p>Welcome, {session.user.name}!</p>
+        <p>Athlete ID: {session.user.image}</p>
+        <button onClick={handleSignOut}>Sign Out</button>
+      </div>
+    );
+  }
+
+  return <button onClick={handleSignIn}>Connect with Strava</button>;
 }
 ```
 
-See the [@better-auth/strava package](../../packages/better-auth-strava) for more details.
+## Usage Examples
 
-## Learn More
+### Access Strava Athlete Data
+
+```typescript
+const { data: session } = authClient.useSession();
+
+if (session) {
+  console.log(session.user.name); // "John Doe"
+  console.log(session.user.image); // Profile photo URL
+  console.log(session.user.email); // "athlete-12345@strava.local" (placeholder)
+}
+```
+
+### Check for Placeholder Email
+
+Strava doesn't provide email addresses. This package automatically generates placeholder emails:
+
+```typescript
+const { data: session } = authClient.useSession();
+
+if (session?.user.email.endsWith("@strava.local")) {
+  // Prompt user to provide a real email
+  console.log("Please add your email address");
+}
+```
+
+### Customize Scopes
+
+```typescript
+import { betterAuth } from "better-auth";
+import { strava } from "better-auth-strava";
+
+export const auth = betterAuth({
+  database: {
+    provider: "postgres",
+    url: process.env.DATABASE_URL!,
+  },
+  socialProviders: {
+    strava: {
+      clientId: process.env.STRAVA_CLIENT_ID!,
+      clientSecret: process.env.STRAVA_CLIENT_SECRET!,
+      scopes: ["read", "profile:read_all", "activity:read", "activity:write"],
+    },
+  },
+});
+```
+
+### Available Scopes
+
+| Scope               | Description                                |
+| ------------------- | ------------------------------------------ |
+| `read`              | Read public profile data                   |
+| `profile:read_all`  | Read all profile information               |
+| `activity:read`     | Read activity data                         |
+| `activity:read_all` | Read all activity data (including private) |
+| `activity:write`    | Create and modify activities               |
+
+### Server-Side Session Access
+
+```typescript
+// app/api/user/route.ts
+import { auth } from "@/lib/auth";
+import { headers } from "next/headers";
+
+export async function GET() {
+  const session = await auth.api.getSession({
+    headers: await headers(),
+  });
+
+  if (!session) {
+    return Response.json({ error: "Unauthorized" }, { status: 401 });
+  }
+
+  return Response.json({
+    user: session.user,
+  });
+}
+```
+
+### Protect Routes with Middleware
+
+```typescript
+// middleware.ts
+import { auth } from "@/lib/auth";
+import { NextResponse } from "next/server";
+import type { NextRequest } from "next/server";
+
+export async function middleware(request: NextRequest) {
+  const session = await auth.api.getSession({
+    headers: request.headers,
+  });
+
+  if (!session && request.nextUrl.pathname.startsWith("/dashboard")) {
+    return NextResponse.redirect(new URL("/", request.url));
+  }
+
+  return NextResponse.next();
+}
+
+export const config = {
+  matcher: ["/dashboard/:path*"],
+};
+```
+
+## Configuration Options
+
+### Strava Provider Options
+
+```typescript
+strava({
+  clientId: string;              // Required: Your Strava OAuth client ID
+  clientSecret: string;          // Required: Your Strava OAuth client secret
+  redirectURI?: string;          // Optional: Override redirect URI
+  scopes?: string[];            // Optional: Custom scopes (default: ["read", "profile:read_all", "activity:read_all"])
+  approvalPrompt?: "auto" | "force"; // Optional: Force re-authorization (default: "auto")
+  accessType?: "offline" | "online"; // Optional: Refresh token support (default: "offline")
+})
+```
+
+## Email Handling
+
+**Important:** Strava does not provide email addresses through their API.
+
+This package automatically generates deterministic placeholder emails:
+
+```
+athlete-{athleteId}@strava.local
+```
+
+**Example:** `athlete-34217575@strava.local`
+
+### Why This Approach?
+
+- ✅ **Seamless**: Works with Better Auth's required email field
+- ✅ **Deterministic**: Same athlete always gets the same email
+- ✅ **Identifiable**: Easy to detect with `.endsWith("@strava.local")`
+- ✅ **No Configuration**: Zero setup required
+
+### Handling in Your App
+
+```typescript
+// Check if user needs to provide email
+if (session.user.email.endsWith("@strava.local")) {
+  // Show email collection form
+}
+
+// Filter real vs placeholder emails
+const realUsers = users.filter((u) => !u.email.endsWith("@strava.local"));
+```
+
+## Demo Application
+
+This repository includes a full-featured demo app showing:
+
+- Complete authentication flow
+- Session management
+- User profile display
+- Modern UI with Shadcn components
+- PostgreSQL database integration
+
+See [Demo Setup Guide](./DEMO_SETUP.md) for installation instructions.
+
+## Project Structure
+
+```
+.
+├── packages/
+│   └── better-auth-strava/      # NPM package
+│       ├── src/
+│       │   └── index.ts         # Strava provider implementation
+│       └── README.md
+├── apps/
+│   └── web/                     # Demo Next.js app
+│       ├── app/
+│       ├── lib/
+│       └── components/
+├── docker-compose.yml           # PostgreSQL for demo
+└── README.md                    # This file
+```
+
+## Resources
 
 - [Better Auth Documentation](https://www.better-auth.com)
 - [Strava API Documentation](https://developers.strava.com)
-- [@better-auth/strava Package](../../packages/better-auth-strava)
+- [Package Documentation](./packages/better-auth-strava/README.md)
+- [Demo Setup Guide](./DEMO_SETUP.md)
+
+## Contributing
+
+Contributions are welcome! Please open an issue or submit a pull request.
 
 ## License
 
-MIT
+MIT © [Cristoper Anderson](https://github.com/cipher416)
