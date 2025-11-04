@@ -38,6 +38,8 @@ if (trustedOrigins.length === 0) {
   trustedOrigins.push("http://localhost:3000");
 }
 
+const primaryOrigin = trustedOrigins[0] ?? trustedOrigins[0] ?? "";
+
 export const auth = betterAuth({
   database: pool,
   trustedOrigins,
@@ -47,6 +49,9 @@ export const auth = betterAuth({
       clientSecret: process.env.STRAVA_CLIENT_SECRET || "",
       scopes: ["read", "profile:read_all", "activity:read_all"],
       approvalPrompt: "auto",
+      redirectURI: primaryOrigin
+        ? `${primaryOrigin}/api/auth/oauth2/callback/strava`
+        : undefined,
     }),
   ],
 });
