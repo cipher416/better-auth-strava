@@ -1,135 +1,150 @@
-# Turborepo starter
+# Better Auth + Strava Demo
 
-This Turborepo starter is maintained by the Turborepo core team.
+This is a demo web application showcasing the `@better-auth/strava` OAuth provider integration.
 
-## Using this example
+## Features
 
-Run the following command:
+- OAuth 2.0 authentication with Strava
+- Automatic token refresh (offline access)
+- Secure session management with better-auth
+- User profile and athlete data from Strava API
+- Clean, modern UI with dark mode support
 
-```sh
-npx create-turbo@latest
+## Setup
+
+### 1. Install Dependencies
+
+```bash
+bun install
 ```
 
-## What's inside?
+### 2. Configure Strava OAuth Application
 
-This Turborepo includes the following packages/apps:
+1. Go to [Strava API Settings](https://www.strava.com/settings/api)
+2. Create a new application (or use an existing one)
+3. Set the **Authorization Callback Domain** to `localhost`
+4. Copy your **Client ID** and **Client Secret**
 
-### Apps and Packages
+### 3. Set Environment Variables
 
-- `docs`: a [Next.js](https://nextjs.org/) app
-- `web`: another [Next.js](https://nextjs.org/) app
-- `@repo/ui`: a stub React component library shared by both `web` and `docs` applications
-- `@repo/eslint-config`: `eslint` configurations (includes `eslint-config-next` and `eslint-config-prettier`)
-- `@repo/typescript-config`: `tsconfig.json`s used throughout the monorepo
+Copy the example environment file and fill in your Strava credentials:
 
-Each package/app is 100% [TypeScript](https://www.typescriptlang.org/).
-
-### Utilities
-
-This Turborepo has some additional tools already setup for you:
-
-- [TypeScript](https://www.typescriptlang.org/) for static type checking
-- [ESLint](https://eslint.org/) for code linting
-- [Prettier](https://prettier.io) for code formatting
-
-### Build
-
-To build all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build
-yarn dlx turbo build
-pnpm exec turbo build
+```bash
+cp .env.example .env
 ```
 
-You can build a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+Edit `.env` and add your Strava credentials:
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo build --filter=docs
+```env
+BETTER_AUTH_SECRET=your-secret-key-here-min-32-chars
+BETTER_AUTH_URL=http://localhost:3000
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo build --filter=docs
-yarn exec turbo build --filter=docs
-pnpm exec turbo build --filter=docs
+STRAVA_CLIENT_ID=your-strava-client-id
+STRAVA_CLIENT_SECRET=your-strava-client-secret
 ```
 
-### Develop
+Generate a secure random secret for `BETTER_AUTH_SECRET`:
 
-To develop all apps and packages, run the following command:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev
-yarn exec turbo dev
-pnpm exec turbo dev
+```bash
+openssl rand -base64 32
 ```
 
-You can develop a specific package by using a [filter](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters):
+### 4. Initialize the Database
 
-```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo dev --filter=web
+Run the migration script to create the necessary database tables:
 
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo dev --filter=web
-yarn exec turbo dev --filter=web
-pnpm exec turbo dev --filter=web
+```bash
+bun run db:migrate
 ```
 
-### Remote Caching
+This will create a SQLite database at `data/auth.db` with the following tables:
 
-> [!TIP]
-> Vercel Remote Cache is free for all plans. Get started today at [vercel.com](https://vercel.com/signup?/signup?utm_source=remote-cache-sdk&utm_campaign=free_remote_cache).
+- `user` - User accounts
+- `session` - Active sessions
+- `account` - OAuth provider accounts
+- `verification` - Email verification tokens
 
-Turborepo can use a technique known as [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching) to share cache artifacts across machines, enabling you to share build caches with your team and CI/CD pipelines.
+### 5. Run the Development Server
 
-By default, Turborepo will cache locally. To enable Remote Caching you will need an account with Vercel. If you don't have an account you can [create one](https://vercel.com/signup?utm_source=turborepo-examples), then enter the following commands:
-
-```
-cd my-turborepo
-
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo login
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo login
-yarn exec turbo login
-pnpm exec turbo login
+```bash
+bun dev
 ```
 
-This will authenticate the Turborepo CLI with your [Vercel account](https://vercel.com/docs/concepts/personal-accounts/overview).
+Open [http://localhost:3000](http://localhost:3000) in your browser.
 
-Next, you can link your Turborepo to your Remote Cache by running the following command from the root of your Turborepo:
+## How It Works
+
+### Authentication Flow
+
+1. User clicks "Connect with Strava"
+2. User is redirected to Strava OAuth authorization page
+3. After approval, Strava redirects back to `/api/auth/callback/strava`
+4. Better-auth exchanges the authorization code for access tokens
+5. User session is created and stored in the SQLite database
+6. User profile is displayed on the page
+
+### API Routes
+
+- `GET /api/auth/[...all]` - Handles all better-auth endpoints including:
+  - `/api/auth/signin/strava` - Initiates OAuth flow
+  - `/api/auth/callback/strava` - Handles OAuth callback
+  - `/api/auth/session` - Returns current session
+  - `/api/auth/signout` - Signs out the user
+
+### Project Structure
 
 ```
-# With [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation) installed (recommended)
-turbo link
-
-# Without [global `turbo`](https://turborepo.com/docs/getting-started/installation#global-installation), use your package manager
-npx turbo link
-yarn exec turbo link
-pnpm exec turbo link
+apps/web/
+├── app/
+│   ├── api/auth/[...all]/
+│   │   └── route.ts          # Better-auth API handler
+│   ├── page.tsx               # Demo UI
+│   ├── layout.tsx             # Root layout
+│   └── globals.css            # Global styles
+├── lib/
+│   ├── auth.ts                # Better-auth server config
+│   └── auth-client.ts         # Better-auth client utilities
+├── data/
+│   └── auth.db                # SQLite database (auto-created)
+└── .env                       # Environment variables
 ```
 
-## Useful Links
+## Strava Scopes
 
-Learn more about the power of Turborepo:
+The demo requests the following Strava scopes:
 
-- [Tasks](https://turborepo.com/docs/crafting-your-repository/running-tasks)
-- [Caching](https://turborepo.com/docs/crafting-your-repository/caching)
-- [Remote Caching](https://turborepo.com/docs/core-concepts/remote-caching)
-- [Filtering](https://turborepo.com/docs/crafting-your-repository/running-tasks#using-filters)
-- [Configuration Options](https://turborepo.com/docs/reference/configuration)
-- [CLI Usage](https://turborepo.com/docs/reference/command-line-reference)
+- `read` - Read public profile data
+- `profile:read_all` - Read all profile information (includes email if available)
+- `activity:read_all` - Read all activity data
+
+You can modify the scopes in `apps/web/lib/auth.ts`.
+
+## Email Handling
+
+Strava does not provide email addresses through their API. The `@better-auth/strava` provider handles this automatically by:
+
+- Generating deterministic placeholder emails: `athlete-{id}@strava.local`
+- Setting `hasPlaceholderEmail: true` in user metadata
+- Working out of the box with no configuration needed
+
+**Example:** User with athlete ID `34217575` gets email `athlete-34217575@strava.local`
+
+You can check if an email is a placeholder:
+
+```typescript
+if (session.user.email.endsWith("@strava.local")) {
+  // This is a placeholder email
+}
+```
+
+See the [@better-auth/strava package](../../packages/better-auth-strava) for more details.
+
+## Learn More
+
+- [Better Auth Documentation](https://www.better-auth.com)
+- [Strava API Documentation](https://developers.strava.com)
+- [@better-auth/strava Package](../../packages/better-auth-strava)
+
+## License
+
+MIT
