@@ -1,6 +1,4 @@
-# Better Auth + Strava Demo
-
-This is a demo web application showcasing the `@better-auth/strava` OAuth provider integration.
+# Better Auth + Strava
 
 ## Features
 
